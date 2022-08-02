@@ -5,7 +5,7 @@ const saucesRoutes = require('./routes/sauces.js');
 const userRoutes = require('./routes/user.js');
 const path = require('path');
 
-mongoose.connect('mongodb+srv://BntVince:xw713BCT@nodejsocr.cwdjm.mongodb.net/?retryWrites=true&w=majority',
+mongoose.connect('mongodb+srv://BntVince:<MDP>@nodejsocr.cwdjm.mongodb.net/?retryWrites=true&w=majority',
   {
     useNewUrlParser: true,
     useUnifiedTopology: true
