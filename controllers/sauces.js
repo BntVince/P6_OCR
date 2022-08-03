@@ -45,30 +45,39 @@ exports.modifySauce = (req, res, next) => {
             ...JSON.parse(req.body.sauce),
             imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
         };
+        delete sauceObject.userId;
+
+        Sauces.findOne({ _id: req.params.id })
+            .then(sauce => {
+                if (sauce.userId === req.auth.userId) {
+                    const filename = sauce.imageUrl.split('/images/')[1];
+                    fs.unlink(`images/${filename}`, () => {
+                        modifyObject(sauceObject, req, res, next);
+                    });
+
+                } else {
+                    res.status(401).json({ message: 'Opération non-autorisé' })
+                }
+            })
+            .catch(error => res.status(400).json({ error }));
+
     } else {
         sauceObject = {
             ...req.body
         };
-    }
+        delete sauceObject.userId;
 
-    delete sauceObject.userId;
-
-    Sauces.findOne({ _id: req.params.id })
-        .then(sauce => {
-            if (sauce.userId === req.auth.userId && req.file) {
-                const filename = sauce.imageUrl.split('/images/')[1];
-                fs.unlink(`images/${filename}`, () => {
+        Sauces.findOne({ _id: req.params.id })
+            .then(sauce => {
+                if (sauce.userId === req.auth.userId) {
                     modifyObject(sauceObject, req, res, next);
-                });
+                } else {
+                    res.status(401).json({ message: 'Opération non-autorisé' })
+                }
+            })
+            .catch(error => res.status(400).json({ error }));
 
-            } else if (sauce.userId === req.auth.userId) {
-                modifyObject(sauceObject, req, res, next);
-            } else {
-                res.status(401).json({ message: 'Opération non-autorisé' })
-            }
-        })
-        .catch(error => res.status(400).json({ error }));
-
+    }
 };
 
 exports.deleteSauces = (req, res, next) => {
