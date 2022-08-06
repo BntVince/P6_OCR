@@ -31,7 +31,7 @@ exports.addNewSauce = (req, res, next) => {
         .catch(error => res.status(400).json({ error }));
 };
 
-const modifyObject = (object, req, res, next) =>  {
+const modifyObject = (object, req, res, next) => {
     Sauces.updateOne({ _id: req.params.id }, { ...object, _id: req.params.id })
         .then(() => res.status(200).json({ message: 'Sauce modifié' }))
         .catch(error => res.status(401).json({ error }));
@@ -97,7 +97,7 @@ exports.deleteSauces = (req, res, next) => {
         .catch(error => res.status(400).json({ error }));
 };
 
-const likeSauce = (object, req, res, next) =>  {
+const likeSauce = (object, req, res, next) => {
     Sauces.updateOne({ _id: req.params.id }, { $set: { ...object } })
         .then(() => {
             res.status(201).json({ message: 'Like modifié' })
@@ -109,33 +109,38 @@ exports.addLikeToASauce = (req, res, next) => {
     Sauces.findOne({ _id: req.params.id })
         .then(sauce => {
             const sauceObject = sauce;
-            if (req.body.like == 1) {
+
+            if ((req.body.like === 1 || req.body.like === -1) && (sauceObject.usersLiked.includes(req.auth.userId) || sauceObject.usersDisliked.includes(req.auth.userId))) {
+                res.status(400).json({ message: "Opération non-authorisé" })
+            }
+
+            else if (req.body.like === 1) {
                 sauceObject.usersLiked.push(req.auth.userId);
                 sauceObject.likes++;
                 likeSauce(sauceObject, req, res, next);
 
-            } else if (req.body.like == -1) {
+            } else if (req.body.like === -1) {
                 sauceObject.usersDisliked.push(req.auth.userId);
                 sauceObject.dislikes++;
                 likeSauce(sauceObject, req, res, next);
 
+            } else if (req.body.like === 0) {
+                const userIndexInLikes = sauceObject.usersLiked.indexOf(req.auth.userId)
+                const userIndexInDislikes = sauceObject.usersDisliked.indexOf(req.auth.userId)
+
+                if (userIndexInLikes > -1) {
+                    sauceObject.usersLiked.splice(userIndexInLikes, 1);
+                    sauceObject.likes--;
+                    likeSauce(sauceObject, req, res, next);
+                } else if (userIndexInDislikes > -1) {
+                    sauceObject.usersDisliked.splice(userIndexInDislikes, 1);
+                    sauceObject.dislikes--;
+                    likeSauce(sauceObject, req, res, next);
+                } else {
+                    res.status(400).json({ message: "Erreur inconnu" })
+                }
             } else {
-                for (let i = 0; i < sauceObject.usersLiked.length; i++) {
-                    if (sauceObject.usersLiked[i] == req.auth.userId) {
-                        sauceObject.usersLiked.splice(i, 1);
-                        sauceObject.likes--;
-                        likeSauce(sauceObject, req, res, next);
-                        break
-                    }
-                }
-                for (let i = 0; i < sauceObject.usersDisliked.length; i++) {
-                    if (sauceObject.usersDisliked[i] == req.auth.userId) {
-                        sauceObject.usersDisliked.splice(i, 1);
-                        sauceObject.dislikes--;
-                        likeSauce(sauceObject, req, res, next);
-                        break
-                    }
-                }
+                res.status(400).json({ message: "Valeur innatendu" })
             }
         })
         .catch(error => res.status(400).json({ error }));
